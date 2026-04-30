@@ -1,10 +1,18 @@
-import { neon } from '@neondatabase/serverless'
+import postgres from 'postgres'
 import type { Receipt, Category, MonthlyTotals } from './types'
 import { format, parseISO } from 'date-fns'
 
+let _sql: ReturnType<typeof postgres> | null = null
+
 function getSQL() {
-  if (!process.env.POSTGRES_URL) throw new Error('POSTGRES_URL is not set')
-  return neon(process.env.POSTGRES_URL, { fullResults: true })
+  if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set')
+  if (!_sql) {
+    _sql = postgres(process.env.DATABASE_URL, {
+      max: 1,
+      prepare: false, // required for Supabase connection pooler (PgBouncer)
+    })
+  }
+  return _sql
 }
 
 export async function initDB() {
@@ -29,29 +37,29 @@ export async function initDB() {
 
 export async function getAllReceipts(): Promise<Receipt[]> {
   const sql = getSQL()
-  const result = await sql`
+  const rows = await sql<Receipt[]>`
     SELECT * FROM receipts ORDER BY date DESC, created_at DESC
   `
-  return result.rows as Receipt[]
+  return rows
 }
 
 export async function getReceiptsByMonth(month?: string): Promise<Receipt[]> {
   if (month) {
     const sql = getSQL()
-    const result = await sql`
+    const rows = await sql<Receipt[]>`
       SELECT * FROM receipts
       WHERE TO_CHAR(date, 'YYYY-MM') = ${month}
       ORDER BY date DESC
     `
-    return result.rows as Receipt[]
+    return rows
   }
   return getAllReceipts()
 }
 
 export async function getReceiptById(id: number): Promise<Receipt | null> {
   const sql = getSQL()
-  const result = await sql`SELECT * FROM receipts WHERE id = ${id}`
-  return (result.rows[0] as Receipt) ?? null
+  const rows = await sql<Receipt[]>`SELECT * FROM receipts WHERE id = ${id}`
+  return rows[0] ?? null
 }
 
 export async function createReceipt(data: {
@@ -66,7 +74,7 @@ export async function createReceipt(data: {
   image_url: string | null
 }): Promise<Receipt> {
   const sql = getSQL()
-  const result = await sql`
+  const rows = await sql<Receipt[]>`
     INSERT INTO receipts (date, vendor, subtotal, gst, pst, total, category, notes, image_url)
     VALUES (
       ${data.date},
@@ -81,7 +89,7 @@ export async function createReceipt(data: {
     )
     RETURNING *
   `
-  return result.rows[0] as Receipt
+  return rows[0]
 }
 
 export async function updateReceipt(
@@ -99,7 +107,7 @@ export async function updateReceipt(
   }
 ): Promise<Receipt | null> {
   const sql = getSQL()
-  const result = await sql`
+  const rows = await sql<Receipt[]>`
     UPDATE receipts
     SET
       date       = ${data.date},
@@ -115,18 +123,30 @@ export async function updateReceipt(
     WHERE id = ${id}
     RETURNING *
   `
-  return (result.rows[0] as Receipt) ?? null
+  return rows[0] ?? null
 }
 
 export async function deleteReceipt(id: number): Promise<boolean> {
   const sql = getSQL()
   const result = await sql`DELETE FROM receipts WHERE id = ${id}`
-  return (result.rowCount ?? 0) > 0
+  return result.count > 0
 }
 
 export async function getMonthlyTotals(): Promise<MonthlyTotals[]> {
   const sql = getSQL()
-  const result = await sql`
+  const rows = await sql<{
+    month: string
+    total: string
+    gst: string
+    pst: string
+    subtotal: string
+    count: string
+    fuel: string
+    food: string
+    tools: string
+    shop: string
+    other: string
+  }[]>`
     SELECT
       TO_CHAR(date, 'YYYY-MM') AS month,
       SUM(total)::text    AS total,
@@ -144,7 +164,7 @@ export async function getMonthlyTotals(): Promise<MonthlyTotals[]> {
     ORDER BY month DESC
   `
 
-  return result.rows.map((r: Record<string, string>) => ({
+  return rows.map((r) => ({
     month: r.month,
     label: format(parseISO(`${r.month}-01`), 'MMMM yyyy'),
     total:    parseFloat(r.total),

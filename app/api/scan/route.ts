@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { put } from '@vercel/blob'
+import { createClient } from '@supabase/supabase-js'
 
 export const maxDuration = 60
+
+function getSupabase() {
+  return createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 export async function POST(request: Request) {
   try {
@@ -21,12 +28,19 @@ export async function POST(request: Request) {
       | 'image/webp'
       | 'image/gif'
 
-    // Upload image to Vercel Blob
-    const filename = `receipts/${Date.now()}-${image.name.replace(/\s+/g, '-')}`
-    const blob = await put(filename, buffer, {
-      access: 'public',
-      contentType: image.type,
-    })
+    // Upload image to Supabase Storage
+    const filename = `${Date.now()}-${image.name.replace(/\s+/g, '-')}`
+    const supabase = getSupabase()
+
+    const { error: uploadError } = await supabase.storage
+      .from('receipts')
+      .upload(filename, buffer, { contentType: image.type, upsert: true })
+
+    if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`)
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('receipts')
+      .getPublicUrl(filename)
 
     // Scan receipt with Claude vision
     const client = new Anthropic()
@@ -69,12 +83,11 @@ GST is typically 5% in Canada. PST varies by province (0-10%).`,
     try {
       extracted = JSON.parse(text)
     } catch {
-      // Claude sometimes wraps in backticks — strip them
       const cleaned = text.replace(/^```json?\s*/i, '').replace(/```\s*$/, '').trim()
       try { extracted = JSON.parse(cleaned) } catch { /* leave empty */ }
     }
 
-    return NextResponse.json({ ...extracted, imageUrl: blob.url })
+    return NextResponse.json({ ...extracted, imageUrl: publicUrl })
   } catch (err) {
     console.error('Scan error:', err)
     return NextResponse.json(
