@@ -1,19 +1,3 @@
-<<<<<<< HEAD
-import { createClient } from '@supabase/supabase-js'
-import type { Receipt, Category, MonthlyTotals } from './types'
-import { format, parseISO } from 'date-fns'
-
-function getSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.SUPABASE_SERVICE_KEY
-  
-  if (!supabaseUrl) throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set')
-  if (!supabaseKey) throw new Error('SUPABASE_SERVICE_KEY is not set')
-  
-  return createClient(supabaseUrl, supabaseKey, {
-    db: { schema: 'public' }
-  })
-=======
 import postgres from 'postgres'
 import type { Receipt, Category, MonthlyTotals } from './types'
 import { format, parseISO } from 'date-fns'
@@ -29,67 +13,38 @@ function getSQL() {
     })
   }
   return _sql
->>>>>>> e159f88549132ef4081463b98d035cb7bc9f0c67
 }
 
 export async function initDB() {
-  const supabase = getSupabase()
-  // Create table if not exists using Supabase's SQL runner
-  const { error } = await supabase.rpc('exec_sql', {
-    sql: `
-      CREATE TABLE IF NOT EXISTS receipts (
-        id           SERIAL PRIMARY KEY,
-        date         DATE        NOT NULL,
-        vendor       VARCHAR(255),
-        subtotal     DECIMAL(10,2),
-        gst          DECIMAL(10,2) NOT NULL DEFAULT 0,
-        pst          DECIMAL(10,2) NOT NULL DEFAULT 0,
-        total        DECIMAL(10,2) NOT NULL,
-        category     VARCHAR(50)   NOT NULL DEFAULT 'other',
-        notes        TEXT,
-        image_url    TEXT,
-        created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-        updated_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-      )
-    `
-  })
-  if (error) console.error('initDB error:', error)
+  const sql = getSQL()
+  await sql`
+    CREATE TABLE IF NOT EXISTS receipts (
+      id           SERIAL PRIMARY KEY,
+      date         DATE        NOT NULL,
+      vendor       VARCHAR(255),
+      subtotal     DECIMAL(10,2),
+      gst          DECIMAL(10,2) NOT NULL DEFAULT 0,
+      pst          DECIMAL(10,2) NOT NULL DEFAULT 0,
+      total        DECIMAL(10,2) NOT NULL,
+      category     VARCHAR(50)   NOT NULL DEFAULT 'other',
+      notes        TEXT,
+      image_url    TEXT,
+      created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+      updated_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    )
+  `
 }
 
 export async function getAllReceipts(): Promise<Receipt[]> {
-<<<<<<< HEAD
-  const supabase = getSupabase()
-  const { data, error } = await supabase
-    .from('receipts')
-    .select('*')
-    .order('date', { ascending: false })
-    .order('created_at', { ascending: false })
-  
-  if (error) throw error
-  return data as Receipt[]
-=======
   const sql = getSQL()
   const rows = await sql<Receipt[]>`
     SELECT * FROM receipts ORDER BY date DESC, created_at DESC
   `
   return rows
->>>>>>> e159f88549132ef4081463b98d035cb7bc9f0c67
 }
 
 export async function getReceiptsByMonth(month?: string): Promise<Receipt[]> {
-  const supabase = getSupabase()
-  
   if (month) {
-<<<<<<< HEAD
-    const { data, error } = await supabase
-      .from('receipts')
-      .select('*')
-      .like('date', `${month}%`)
-      .order('date', { ascending: false })
-    
-    if (error) throw error
-    return data as Receipt[]
-=======
     const sql = getSQL()
     const rows = await sql<Receipt[]>`
       SELECT * FROM receipts
@@ -97,30 +52,14 @@ export async function getReceiptsByMonth(month?: string): Promise<Receipt[]> {
       ORDER BY date DESC
     `
     return rows
->>>>>>> e159f88549132ef4081463b98d035cb7bc9f0c67
   }
   return getAllReceipts()
 }
 
 export async function getReceiptById(id: number): Promise<Receipt | null> {
-<<<<<<< HEAD
-  const supabase = getSupabase()
-  const { data, error } = await supabase
-    .from('receipts')
-    .select('*')
-    .eq('id', id)
-    .single()
-  
-  if (error) {
-    if (error.code === 'PGRST116') return null // Not found
-    throw error
-  }
-  return data as Receipt
-=======
   const sql = getSQL()
   const rows = await sql<Receipt[]>`SELECT * FROM receipts WHERE id = ${id}`
   return rows[0] ?? null
->>>>>>> e159f88549132ef4081463b98d035cb7bc9f0c67
 }
 
 export async function createReceipt(data: {
@@ -134,27 +73,6 @@ export async function createReceipt(data: {
   notes: string | null
   image_url: string | null
 }): Promise<Receipt> {
-<<<<<<< HEAD
-  const supabase = getSupabase()
-  const { data: result, error } = await supabase
-    .from('receipts')
-    .insert({
-      date: data.date,
-      vendor: data.vendor,
-      subtotal: data.subtotal,
-      gst: data.gst,
-      pst: data.pst,
-      total: data.total,
-      category: data.category,
-      notes: data.notes,
-      image_url: data.image_url,
-    })
-    .select()
-    .single()
-  
-  if (error) throw error
-  return result as Receipt
-=======
   const sql = getSQL()
   const rows = await sql<Receipt[]>`
     INSERT INTO receipts (date, vendor, subtotal, gst, pst, total, category, notes, image_url)
@@ -172,7 +90,6 @@ export async function createReceipt(data: {
     RETURNING *
   `
   return rows[0]
->>>>>>> e159f88549132ef4081463b98d035cb7bc9f0c67
 }
 
 export async function updateReceipt(
@@ -189,58 +106,6 @@ export async function updateReceipt(
     image_url: string | null
   }
 ): Promise<Receipt | null> {
-<<<<<<< HEAD
-  const supabase = getSupabase()
-  const { data: result, error } = await supabase
-    .from('receipts')
-    .update({
-      date: data.date,
-      vendor: data.vendor,
-      subtotal: data.subtotal,
-      gst: data.gst,
-      pst: data.pst,
-      total: data.total,
-      category: data.category,
-      notes: data.notes,
-      image_url: data.image_url,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
-    .select()
-    .single()
-  
-  if (error) {
-    if (error.code === 'PGRST116') return null // Not found
-    throw error
-  }
-  return result as Receipt
-}
-
-export async function deleteReceipt(id: number): Promise<boolean> {
-  const supabase = getSupabase()
-  const { error } = await supabase
-    .from('receipts')
-    .delete()
-    .eq('id', id)
-  
-  if (error) throw error
-  return true
-}
-
-export async function getMonthlyTotals(): Promise<MonthlyTotals[]> {
-  const supabase = getSupabase()
-  
-  // Use RPC to call a custom function for aggregation
-  const { data, error } = await supabase.rpc('get_monthly_totals')
-  
-  if (error) {
-    // Fallback: fetch all and aggregate in JS
-    const receipts = await getAllReceipts()
-    return aggregateMonthlyTotals(receipts)
-  }
-  
-  return data.map((r: Record<string, string>) => ({
-=======
   const sql = getSQL()
   const rows = await sql<Receipt[]>`
     UPDATE receipts
@@ -300,7 +165,6 @@ export async function getMonthlyTotals(): Promise<MonthlyTotals[]> {
   `
 
   return rows.map((r) => ({
->>>>>>> e159f88549132ef4081463b98d035cb7bc9f0c67
     month: r.month,
     label: format(parseISO(`${r.month}-01`), 'MMMM yyyy'),
     total: parseFloat(r.total),
@@ -316,34 +180,4 @@ export async function getMonthlyTotals(): Promise<MonthlyTotals[]> {
       other: parseFloat(r.other),
     },
   }))
-}
-
-function aggregateMonthlyTotals(receipts: Receipt[]): MonthlyTotals[] {
-  const byMonth: Record<string, MonthlyTotals> = {}
-  
-  for (const receipt of receipts) {
-    const month = receipt.date.substring(0, 7)
-    if (!byMonth[month]) {
-      byMonth[month] = {
-        month,
-        label: format(parseISO(`${month}-01`), 'MMMM yyyy'),
-        total: 0,
-        gst: 0,
-        pst: 0,
-        subtotal: 0,
-        count: 0,
-        byCategory: { fuel: 0, food: 0, tools: 0, shop: 0, other: 0 },
-      }
-    }
-    
-    const m = byMonth[month]
-    m.total += receipt.total
-    m.gst += receipt.gst
-    m.pst += receipt.pst
-    m.subtotal += receipt.subtotal ?? (receipt.total - receipt.gst - receipt.pst)
-    m.count++
-    m.byCategory[receipt.category] += receipt.total
-  }
-  
-  return Object.values(byMonth).sort((a, b) => b.month.localeCompare(a.month))
 }
