@@ -21,9 +21,9 @@ export async function POST(request: Request) {
     const receipt = await createReceipt({
       date:      body.date,
       vendor:    body.vendor || null,
-      subtotal:  body.subtotal != null ? parseFloat(body.subtotal) : null,
-      gst:       parseFloat(body.gst ?? 0),
-      pst:       parseFloat(body.pst ?? 0),
+      subtotal:  body.subtotal !== '' && body.subtotal != null ? parseFloat(body.subtotal) : null,
+      gst:       body.gst !== '' && body.gst != null ? parseFloat(body.gst) : 0,
+      pst:       body.pst !== '' && body.pst != null ? parseFloat(body.pst) : 0,
       total:     parseFloat(body.total),
       category:  (body.category as Category) || 'other',
       notes:     body.notes || null,
