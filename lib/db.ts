@@ -70,6 +70,24 @@ export async function getReceiptsByMonth(month?: string): Promise<Receipt[]> {
   return getAllReceipts()
 }
 
+export async function getReceipts(filters: { month?: string; submitter?: string }): Promise<Receipt[]> {
+  const sql = getSQL()
+  const { month, submitter } = filters
+  let rows
+
+  if (month && submitter) {
+    rows = await sql`SELECT * FROM receipts WHERE TO_CHAR(date, 'YYYY-MM') = ${month} AND submitted_by = ${submitter} ORDER BY date DESC, created_at DESC`
+  } else if (month) {
+    rows = await sql`SELECT * FROM receipts WHERE TO_CHAR(date, 'YYYY-MM') = ${month} ORDER BY date DESC, created_at DESC`
+  } else if (submitter) {
+    rows = await sql`SELECT * FROM receipts WHERE submitted_by = ${submitter} ORDER BY date DESC, created_at DESC`
+  } else {
+    rows = await sql`SELECT * FROM receipts ORDER BY date DESC, created_at DESC`
+  }
+
+  return rows.map(normalizeReceipt)
+}
+
 export async function getAvailableMonths(): Promise<{ month: string; label: string }[]> {
   const sql = getSQL()
   const rows = await sql<{ month: string }[]>`
