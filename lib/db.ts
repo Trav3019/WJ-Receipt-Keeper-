@@ -15,6 +15,15 @@ function getSQL() {
   return _sql
 }
 
+function normalizeReceipt(row: Record<string, unknown>): Receipt {
+  return {
+    ...row,
+    date:       row.date       instanceof Date ? row.date.toISOString().slice(0, 10) : String(row.date ?? ''),
+    created_at: row.created_at instanceof Date ? row.created_at.toISOString()        : String(row.created_at ?? ''),
+    updated_at: row.updated_at instanceof Date ? row.updated_at.toISOString()        : String(row.updated_at ?? ''),
+  } as Receipt
+}
+
 export async function initDB() {
   const sql = getSQL()
   await sql`
@@ -37,29 +46,27 @@ export async function initDB() {
 
 export async function getAllReceipts(): Promise<Receipt[]> {
   const sql = getSQL()
-  const rows = await sql<Receipt[]>`
-    SELECT * FROM receipts ORDER BY date DESC, created_at DESC
-  `
-  return rows
+  const rows = await sql`SELECT * FROM receipts ORDER BY date DESC, created_at DESC`
+  return rows.map(normalizeReceipt)
 }
 
 export async function getReceiptsByMonth(month?: string): Promise<Receipt[]> {
   if (month) {
     const sql = getSQL()
-    const rows = await sql<Receipt[]>`
+    const rows = await sql`
       SELECT * FROM receipts
       WHERE TO_CHAR(date, 'YYYY-MM') = ${month}
       ORDER BY date DESC
     `
-    return rows
+    return rows.map(normalizeReceipt)
   }
   return getAllReceipts()
 }
 
 export async function getReceiptById(id: number): Promise<Receipt | null> {
   const sql = getSQL()
-  const rows = await sql<Receipt[]>`SELECT * FROM receipts WHERE id = ${id}`
-  return rows[0] ?? null
+  const rows = await sql`SELECT * FROM receipts WHERE id = ${id}`
+  return rows.length ? normalizeReceipt(rows[0] as Record<string, unknown>) : null
 }
 
 export async function createReceipt(data: {
@@ -74,7 +81,7 @@ export async function createReceipt(data: {
   image_url: string | null
 }): Promise<Receipt> {
   const sql = getSQL()
-  const rows = await sql<Receipt[]>`
+  const rows = await sql`
     INSERT INTO receipts (date, vendor, subtotal, gst, pst, total, category, notes, image_url)
     VALUES (
       ${data.date},
@@ -89,7 +96,7 @@ export async function createReceipt(data: {
     )
     RETURNING *
   `
-  return rows[0]
+  return normalizeReceipt(rows[0] as Record<string, unknown>)
 }
 
 export async function updateReceipt(
@@ -107,7 +114,7 @@ export async function updateReceipt(
   }
 ): Promise<Receipt | null> {
   const sql = getSQL()
-  const rows = await sql<Receipt[]>`
+  const rows = await sql`
     UPDATE receipts
     SET
       date       = ${data.date},
@@ -123,7 +130,7 @@ export async function updateReceipt(
     WHERE id = ${id}
     RETURNING *
   `
-  return rows[0] ?? null
+  return rows.length ? normalizeReceipt(rows[0] as Record<string, unknown>) : null
 }
 
 export async function deleteReceipt(id: number): Promise<boolean> {
