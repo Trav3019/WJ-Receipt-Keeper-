@@ -26,9 +26,10 @@ export async function PUT(
       gst:       parseFloat(body.gst ?? 0),
       pst:       parseFloat(body.pst ?? 0),
       total:     parseFloat(body.total),
-      category:  (body.category as Category) || 'other',
-      notes:     body.notes || null,
-      image_url: body.image_url || null,
+      category:     (body.category as Category) || 'other',
+      notes:        body.notes || null,
+      image_url:    body.image_url || null,
+      submitted_by: body.submitted_by || null,
     })
     if (!receipt) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json(receipt)
