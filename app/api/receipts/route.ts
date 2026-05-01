@@ -25,9 +25,10 @@ export async function POST(request: Request) {
       gst:       body.gst !== '' && body.gst != null ? parseFloat(body.gst) : 0,
       pst:       body.pst !== '' && body.pst != null ? parseFloat(body.pst) : 0,
       total:     parseFloat(body.total),
-      category:  (body.category as Category) || 'other',
-      notes:     body.notes || null,
-      image_url: body.image_url || null,
+      category:     (body.category as Category) || 'other',
+      notes:        body.notes || null,
+      image_url:    body.image_url || null,
+      submitted_by: body.submitted_by || null,
     })
 
     return NextResponse.json(receipt, { status: 201 })
