@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
 
 export const maxDuration = 60
@@ -42,18 +42,18 @@ export async function POST(request: Request) {
       .from('receipts')
       .getPublicUrl(filename)
 
-    // Scan receipt with Claude vision
-    const client = new Anthropic()
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+    // Scan receipt with OpenAI vision
+    const client = new OpenAI()
+    const message = await client.chat.completions.create({
+      model: 'gpt-4o',
       max_tokens: 1024,
       messages: [
         {
           role: 'user',
           content: [
             {
-              type: 'image',
-              source: { type: 'base64', media_type: mediaType, data: base64 },
+              type: 'image_url',
+              image_url: { url: `data:${mediaType};base64,${base64}` },
             },
             {
               type: 'text',
@@ -76,8 +76,7 @@ GST is typically 5% in Canada. PST varies by province (0-10%).`,
       ],
     })
 
-    const text =
-      message.content[0].type === 'text' ? message.content[0].text.trim() : '{}'
+    const text = message.choices[0]?.message?.content?.trim() ?? '{}'
 
     let extracted: Record<string, unknown> = {}
     try {
