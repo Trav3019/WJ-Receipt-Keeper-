@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { CATEGORIES } from '@/lib/types'
+import { CATEGORIES, SUBMITTERS } from '@/lib/types'
 import type { Category, ReceiptFormData } from '@/lib/types'
 
 const empty: ReceiptFormData = {
@@ -16,6 +16,7 @@ const empty: ReceiptFormData = {
   category: 'other',
   notes: '',
   image_url: '',
+  submitted_by: '',
 }
 
 export default function NewReceiptPage() {
@@ -248,6 +249,16 @@ export default function NewReceiptPage() {
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="label">Submitted By</label>
+            <select name="submitted_by" value={form.submitted_by} onChange={handleChange} className="input">
+              <option value="">— Select name —</option>
+              {SUBMITTERS.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
           </div>
 
           <div>
