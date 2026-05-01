@@ -22,7 +22,7 @@ export default function NewReceiptPage() {
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const [preview, setPreview]   = useState<string | null>(null)
+  const [preview, setPreview]    = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [scanning, setScanning]  = useState(false)
   const [saving, setSaving]      = useState(false)
@@ -160,18 +160,15 @@ export default function NewReceiptPage() {
                 <svg className="w-12 h-12 text-brand-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <p className="text-brand-700 font-semibold">Drop receipt here or click to upload</p>
+                <p className="text-brand-700 font-semibold">Drop receipt here or tap to upload</p>
                 <p className="text-xs text-stone-400 mt-1">JPG, PNG, WEBP — up to 4 MB</p>
               </div>
             )}
           </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={onFileChange}
-          />
+
+          {/* Hidden file inputs — one for gallery, one for camera */}
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
+          <input id="cameraInput" type="file" accept="image/*" capture="environment" className="hidden" onChange={onFileChange} />
 
           <div className="flex gap-2">
             <button
@@ -182,7 +179,19 @@ export default function NewReceiptPage() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              {preview ? 'Change Image' : 'Choose Image'}
+              {preview ? 'Change' : 'Gallery'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => document.getElementById('cameraInput')?.click()}
+              className="btn-secondary flex-1 sm:hidden"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Camera
             </button>
 
             <button
@@ -204,7 +213,7 @@ export default function NewReceiptPage() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
-                  {scanned ? 'Re-scan' : 'Scan Receipt'}
+                  {scanned ? 'Re-scan' : 'Scan'}
                 </>
               )}
             </button>
@@ -212,7 +221,7 @@ export default function NewReceiptPage() {
 
           {scanned && (
             <div className="rounded-lg bg-brand-50 border border-brand-200 px-4 py-3 text-sm text-brand-700 font-medium">
-              ✓ Receipt scanned — review and confirm the fields on the right
+              ✓ Receipt scanned — review and confirm the fields below
             </div>
           )}
         </div>
@@ -258,33 +267,14 @@ export default function NewReceiptPage() {
               <label className="label">Subtotal</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">$</span>
-                <input
-                  name="subtotal"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.subtotal}
-                  onChange={handleChange}
-                  className="input pl-6"
-                  placeholder="0.00"
-                />
+                <input name="subtotal" type="number" step="0.01" min="0" value={form.subtotal} onChange={handleChange} className="input pl-6" placeholder="0.00" />
               </div>
             </div>
             <div>
               <label className="label">Total *</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">$</span>
-                <input
-                  name="total"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.total}
-                  onChange={handleChange}
-                  required
-                  className="input pl-6"
-                  placeholder="0.00"
-                />
+                <input name="total" type="number" step="0.01" min="0" value={form.total} onChange={handleChange} required className="input pl-6" placeholder="0.00" />
               </div>
             </div>
           </div>
@@ -294,32 +284,14 @@ export default function NewReceiptPage() {
               <label className="label">GST</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">$</span>
-                <input
-                  name="gst"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.gst}
-                  onChange={handleChange}
-                  className="input pl-6"
-                  placeholder="0.00"
-                />
+                <input name="gst" type="number" step="0.01" min="0" value={form.gst} onChange={handleChange} className="input pl-6" placeholder="0.00" />
               </div>
             </div>
             <div>
               <label className="label">PST</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">$</span>
-                <input
-                  name="pst"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.pst}
-                  onChange={handleChange}
-                  className="input pl-6"
-                  placeholder="0.00"
-                />
+                <input name="pst" type="number" step="0.01" min="0" value={form.pst} onChange={handleChange} className="input pl-6" placeholder="0.00" />
               </div>
             </div>
           </div>
