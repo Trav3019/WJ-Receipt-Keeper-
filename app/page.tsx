@@ -17,6 +17,11 @@ function CategoryBadge({ category }: { category: string }) {
   )
 }
 
+function fmtDate(date: string | Date | null) {
+  if (!date) return '—'
+  try { return format(parseISO(date.toString()), 'MMM d, yyyy') } catch { return '—' }
+}
+
 export default async function DashboardPage() {
   let monthly: Awaited<ReturnType<typeof getMonthlyTotals>> = []
   let recent: Receipt[] = []
@@ -44,7 +49,7 @@ export default async function DashboardPage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Add Receipt
+          <span className="hidden sm:inline">Add Receipt</span>
         </Link>
       </div>
 
@@ -102,35 +107,37 @@ export default async function DashboardPage() {
             Monthly History
           </h2>
           <div className="card overflow-hidden p-0">
-            <table className="w-full text-sm">
-              <thead className="bg-brand-700 text-white">
-                <tr>
-                  {['Month', 'Receipts', 'Subtotal', 'GST', 'PST', 'Total', ''].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-brand-50">
-                {monthly.map((m) => (
-                  <tr key={m.month} className="hover:bg-brand-50 transition-colors">
-                    <td className="px-4 py-3 font-medium">{m.label}</td>
-                    <td className="px-4 py-3 text-stone-500">{m.count}</td>
-                    <td className="px-4 py-3">{fmt(m.subtotal)}</td>
-                    <td className="px-4 py-3">{fmt(m.gst)}</td>
-                    <td className="px-4 py-3">{fmt(m.pst)}</td>
-                    <td className="px-4 py-3 font-semibold text-brand-700">{fmt(m.total)}</td>
-                    <td className="px-4 py-3">
-                      <a
-                        href={`/api/export?month=${m.month}`}
-                        className="text-brand-600 hover:text-brand-800 text-xs font-semibold"
-                      >
-                        Export
-                      </a>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[520px]">
+                <thead className="bg-brand-700 text-white">
+                  <tr>
+                    {['Month', 'Receipts', 'Subtotal', 'GST', 'PST', 'Total', ''].map((h) => (
+                      <th key={h} className="px-4 py-3 text-left font-semibold">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-brand-50">
+                  {monthly.map((m) => (
+                    <tr key={m.month} className="hover:bg-brand-50 transition-colors">
+                      <td className="px-4 py-3 font-medium">{m.label}</td>
+                      <td className="px-4 py-3 text-stone-500">{m.count}</td>
+                      <td className="px-4 py-3">{fmt(m.subtotal)}</td>
+                      <td className="px-4 py-3">{fmt(m.gst)}</td>
+                      <td className="px-4 py-3">{fmt(m.pst)}</td>
+                      <td className="px-4 py-3 font-semibold text-brand-700">{fmt(m.total)}</td>
+                      <td className="px-4 py-3">
+                        <a
+                          href={`/api/export?month=${m.month}`}
+                          className="text-brand-600 hover:text-brand-800 text-xs font-semibold"
+                        >
+                          Export
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -146,35 +153,50 @@ export default async function DashboardPage() {
               View all →
             </Link>
           </div>
-          <div className="card overflow-hidden p-0">
-            <table className="w-full text-sm">
-              <thead className="bg-stone-50 border-b border-stone-200">
-                <tr>
-                  {['Date', 'Vendor', 'Category', 'GST', 'PST', 'Total', ''].map((h) => (
-                    <th key={h} className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-stone-500">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {recent.map((r) => (
-                  <tr key={r.id} className="hover:bg-brand-50 transition-colors">
-                    <td className="px-4 py-3 text-stone-500">
-                      {format(parseISO(r.date.toString()), 'MMM d, yyyy')}
-                    </td>
-                    <td className="px-4 py-3 font-medium">{r.vendor ?? '—'}</td>
-                    <td className="px-4 py-3"><CategoryBadge category={r.category} /></td>
-                    <td className="px-4 py-3">{fmt(r.gst)}</td>
-                    <td className="px-4 py-3">{fmt(r.pst)}</td>
-                    <td className="px-4 py-3 font-semibold text-brand-700">{fmt(r.total)}</td>
-                    <td className="px-4 py-3">
-                      <Link href={`/receipts/${r.id}`} className="text-brand-600 hover:text-brand-800 text-xs font-semibold">
-                        View
-                      </Link>
-                    </td>
+
+          {/* Mobile card list */}
+          <div className="sm:hidden card p-0 overflow-hidden divide-y divide-stone-100">
+            {recent.map((r) => (
+              <Link key={r.id} href={`/receipts/${r.id}`} className="flex items-center justify-between px-4 py-3 hover:bg-brand-50 transition-colors">
+                <div>
+                  <p className="font-medium text-sm">{r.vendor ?? '—'}</p>
+                  <p className="text-xs text-stone-400 mt-0.5">{fmtDate(r.date)} · <CategoryBadge category={r.category} /></p>
+                </div>
+                <span className="font-semibold text-brand-700 text-sm">{fmt(r.total)}</span>
+              </Link>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block card overflow-hidden p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-stone-50 border-b border-stone-200">
+                  <tr>
+                    {['Date', 'Vendor', 'Category', 'GST', 'PST', 'Total', ''].map((h) => (
+                      <th key={h} className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-stone-500">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {recent.map((r) => (
+                    <tr key={r.id} className="hover:bg-brand-50 transition-colors">
+                      <td className="px-4 py-3 text-stone-500 whitespace-nowrap">{fmtDate(r.date)}</td>
+                      <td className="px-4 py-3 font-medium">{r.vendor ?? '—'}</td>
+                      <td className="px-4 py-3"><CategoryBadge category={r.category} /></td>
+                      <td className="px-4 py-3">{fmt(r.gst)}</td>
+                      <td className="px-4 py-3">{fmt(r.pst)}</td>
+                      <td className="px-4 py-3 font-semibold text-brand-700">{fmt(r.total)}</td>
+                      <td className="px-4 py-3">
+                        <Link href={`/receipts/${r.id}`} className="text-brand-600 hover:text-brand-800 text-xs font-semibold">
+                          View
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
