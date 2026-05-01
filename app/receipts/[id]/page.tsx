@@ -12,17 +12,22 @@ function fmt(n: number) {
   return n.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' })
 }
 
+function fmtDate(date: string | Date | null, template: string) {
+  if (!date) return '—'
+  try { return format(parseISO(date.toString()), template) } catch { return '—' }
+}
+
 export default function ReceiptDetailPage() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
 
-  const [receipt, setReceipt] = useState<Receipt | null>(null)
-  const [editing, setEditing] = useState(false)
-  const [form, setForm]       = useState<ReceiptFormData | null>(null)
-  const [saving, setSaving]   = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [error, setError]     = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [receipt, setReceipt]     = useState<Receipt | null>(null)
+  const [editing, setEditing]     = useState(false)
+  const [form, setForm]           = useState<ReceiptFormData | null>(null)
+  const [saving, setSaving]       = useState(false)
+  const [deleting, setDeleting]   = useState(false)
+  const [error, setError]         = useState<string | null>(null)
+  const [loading, setLoading]     = useState(true)
 
   useEffect(() => {
     fetch(`/api/receipts/${id}`)
@@ -34,7 +39,7 @@ export default function ReceiptDetailPage() {
   const startEdit = () => {
     if (!receipt) return
     setForm({
-      date:      receipt.date.toString().slice(0, 10),
+      date:      receipt.date ? receipt.date.toString().slice(0, 10) : '',
       vendor:    receipt.vendor    ?? '',
       subtotal:  receipt.subtotal  != null ? String(receipt.subtotal) : '',
       gst:       String(receipt.gst),
@@ -104,28 +109,26 @@ export default function ReceiptDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-stone-500">
-          <Link href="/receipts" className="hover:text-brand-700">Receipts</Link>
+      {/* Breadcrumb + actions */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm text-stone-500 min-w-0">
+          <Link href="/receipts" className="hover:text-brand-700 shrink-0">Receipts</Link>
           <span>/</span>
-          <span className="text-stone-700 font-medium">{receipt.vendor ?? `Receipt #${receipt.id}`}</span>
+          <span className="text-stone-700 font-medium truncate">{receipt.vendor ?? `Receipt #${receipt.id}`}</span>
         </div>
-        <div className="flex gap-2">
-          {!editing && (
-            <>
-              <button onClick={startEdit} className="btn-secondary">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit
-              </button>
-              <button onClick={handleDelete} disabled={deleting} className="btn-danger">
-                {deleting ? 'Deleting…' : 'Delete'}
-              </button>
-            </>
-          )}
-        </div>
+        {!editing && (
+          <div className="flex gap-2 shrink-0">
+            <button onClick={startEdit} className="btn-secondary">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              <span className="hidden sm:inline">Edit</span>
+            </button>
+            <button onClick={handleDelete} disabled={deleting} className="btn-danger">
+              {deleting ? 'Deleting…' : <><span className="hidden sm:inline">Delete</span><svg className="w-4 h-4 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></>}
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -147,7 +150,7 @@ export default function ReceiptDetailPage() {
               />
             </div>
           ) : (
-            <div className="card flex items-center justify-center h-64 bg-stone-50">
+            <div className="card flex items-center justify-center h-48 md:h-64 bg-stone-50">
               <div className="text-center text-stone-300">
                 <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -233,7 +236,7 @@ export default function ReceiptDetailPage() {
                 <div>
                   <h2 className="text-xl font-bold text-stone-800">{receipt.vendor ?? 'Unknown Vendor'}</h2>
                   <p className="text-stone-500 text-sm mt-0.5">
-                    {format(parseISO(receipt.date.toString()), 'EEEE, MMMM d, yyyy')}
+                    {fmtDate(receipt.date, 'EEEE, MMMM d, yyyy')}
                   </p>
                 </div>
                 <span className={`badge ${cat?.color ?? 'bg-gray-100 text-gray-700'}`}>{cat?.label}</span>
@@ -264,7 +267,7 @@ export default function ReceiptDetailPage() {
               )}
 
               <div className="text-xs text-stone-400 pt-2 border-t border-stone-100">
-                Added {format(parseISO(receipt.created_at), 'MMM d, yyyy \'at\' h:mm a')}
+                Added {fmtDate(receipt.created_at, "MMM d, yyyy 'at' h:mm a")}
               </div>
             </div>
           )}
