@@ -39,15 +39,16 @@ export default function ReceiptDetailPage() {
   const startEdit = () => {
     if (!receipt) return
     setForm({
-      date:      receipt.date ? receipt.date.toString().slice(0, 10) : '',
-      vendor:    receipt.vendor    ?? '',
-      subtotal:  receipt.subtotal  != null ? String(receipt.subtotal) : '',
-      gst:       String(receipt.gst),
-      pst:       String(receipt.pst),
-      total:     String(receipt.total),
-      category:  receipt.category as Category,
-      notes:     receipt.notes     ?? '',
-      image_url: receipt.image_url ?? '',
+      date:         receipt.date ? receipt.date.toString().slice(0, 10) : '',
+      vendor:       receipt.vendor    ?? '',
+      subtotal:     receipt.subtotal  != null ? String(receipt.subtotal) : '',
+      gst:          String(receipt.gst),
+      pst:          String(receipt.pst),
+      total:        String(receipt.total),
+      category:     receipt.category as Category,
+      notes:        receipt.notes     ?? '',
+      image_url:    receipt.image_url ?? '',
+      submitted_by: receipt.submitted_by ?? '',
     })
     setEditing(true)
   }
