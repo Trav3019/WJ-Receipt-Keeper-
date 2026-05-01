@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { getAllReceipts, createReceipt, initDB } from '@/lib/db'
 import type { Category } from '@/lib/types'
 
@@ -31,6 +32,8 @@ export async function POST(request: Request) {
       submitted_by: body.submitted_by || null,
     })
 
+    revalidatePath('/')
+    revalidatePath('/receipts')
     return NextResponse.json(receipt, { status: 201 })
   } catch (err) {
     console.error('POST /api/receipts error:', err)
