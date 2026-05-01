@@ -8,9 +8,12 @@ export const CATEGORIES: { value: Category; label: string; color: string }[] = [
   { value: 'other', label: 'Other', color: 'bg-gray-100 text-gray-800'   },
 ]
 
+// Update this list with your team's names
+export const SUBMITTERS = ['Matt', 'Jacy', 'Paul', 'Ray', 'Travis', 'Link']
+
 export interface Receipt {
   id: number
-  date: string         // YYYY-MM-DD
+  date: string
   vendor: string | null
   subtotal: number | null
   gst: number
@@ -19,6 +22,7 @@ export interface Receipt {
   category: Category
   notes: string | null
   image_url: string | null
+  submitted_by: string | null
   created_at: string
   updated_at: string
 }
@@ -35,8 +39,8 @@ export interface ScanResult {
 }
 
 export interface MonthlyTotals {
-  month: string       // YYYY-MM
-  label: string       // e.g. "January 2025"
+  month: string
+  label: string
   total: number
   gst: number
   pst: number
@@ -55,4 +59,5 @@ export interface ReceiptFormData {
   category: Category
   notes: string
   image_url: string
+  submitted_by: string
 }
