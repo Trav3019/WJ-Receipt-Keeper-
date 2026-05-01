@@ -24,7 +24,7 @@ export default async function ReceiptsPage() {
   // Group by month
   const byMonth = new Map<string, Receipt[]>()
   receipts.forEach((r) => {
-    const m = r.date.toString().slice(0, 7)
+    const m = r.date ? r.date.toString().slice(0, 7) : 'unknown'
     if (!byMonth.has(m)) byMonth.set(m, [])
     byMonth.get(m)!.push(r)
   })
@@ -61,7 +61,7 @@ export default async function ReceiptsPage() {
       ) : (
         months.map((month) => {
           const mReceipts = byMonth.get(month)!
-          const mLabel = format(parseISO(`${month}-01`), 'MMMM yyyy')
+          const mLabel = month === 'unknown' ? 'Unknown Date' : format(parseISO(`${month}-01`), 'MMMM yyyy')
           const mTotal = mReceipts.reduce((s, r) => s + r.total, 0)
           const mGst   = mReceipts.reduce((s, r) => s + r.gst, 0)
           const mPst   = mReceipts.reduce((s, r) => s + r.pst, 0)
@@ -101,7 +101,7 @@ export default async function ReceiptsPage() {
                     {mReceipts.map((r) => (
                       <tr key={r.id} className="hover:bg-brand-50 transition-colors">
                         <td className="px-4 py-3 text-stone-500 whitespace-nowrap">
-                          {format(parseISO(r.date.toString()), 'MMM d, yyyy')}
+                          {r.date ? format(parseISO(r.date.toString()), 'MMM d, yyyy') : '—'}
                         </td>
                         <td className="px-4 py-3 font-medium">{r.vendor ?? '—'}</td>
                         <td className="px-4 py-3"><CategoryBadge category={r.category} /></td>
