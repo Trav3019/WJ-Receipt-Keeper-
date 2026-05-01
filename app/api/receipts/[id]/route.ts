@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { getReceiptById, updateReceipt, deleteReceipt } from '@/lib/db'
 import type { Category } from '@/lib/types'
 
@@ -32,6 +33,8 @@ export async function PUT(
       submitted_by: body.submitted_by || null,
     })
     if (!receipt) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    revalidatePath('/')
+    revalidatePath('/receipts')
     return NextResponse.json(receipt)
   } catch (err) {
     console.error('PUT /api/receipts/[id] error:', err)
@@ -46,5 +49,7 @@ export async function DELETE(
   const { id } = await params
   const deleted = await deleteReceipt(parseInt(id))
   if (!deleted) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  revalidatePath('/')
+  revalidatePath('/receipts')
   return NextResponse.json({ success: true })
 }
