@@ -1,11 +1,13 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
-import { getReceiptsByMonth, getAvailableMonths } from '@/lib/db'
+import Image from 'next/image'
+import { getReceipts, getAvailableMonths } from '@/lib/db'
 import { CATEGORIES } from '@/lib/types'
 import type { Receipt } from '@/lib/types'
 import { format, parseISO } from 'date-fns'
-import MonthFilter from '@/components/MonthFilter'
+import ReceiptFilters from '@/components/ReceiptFilters'
+import DeleteReceiptButton from '@/components/DeleteReceiptButton'
 
 function fmt(n: number) {
   return n.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' })
@@ -21,25 +23,44 @@ function CategoryBadge({ category }: { category: string }) {
   return <span className={`badge ${cat?.color ?? 'bg-gray-100 text-gray-800'}`}>{cat?.label ?? category}</span>
 }
 
+function Thumbnail({ url }: { url: string | null }) {
+  if (!url) return (
+    <div className="w-10 h-10 rounded bg-stone-100 flex items-center justify-center shrink-0">
+      <svg className="w-5 h-5 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    </div>
+  )
+  return (
+    <Image
+      src={url}
+      alt="Receipt"
+      width={40}
+      height={40}
+      className="w-10 h-10 rounded object-cover shrink-0"
+      unoptimized
+    />
+  )
+}
+
 export default async function ReceiptsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string }>
+  searchParams: Promise<{ month?: string; submitter?: string }>
 }) {
-  const { month } = await searchParams
+  const { month, submitter } = await searchParams
   let receipts: Receipt[] = []
   let months: { month: string; label: string }[] = []
 
   try {
     ;[receipts, months] = await Promise.all([
-      getReceiptsByMonth(month),
+      getReceipts({ month, submitter }),
       getAvailableMonths(),
     ])
   } catch {
     // DB not yet configured
   }
 
-  // Group by month
   const byMonth = new Map<string, Receipt[]>()
   receipts.forEach((r) => {
     const m = r.date ? r.date.slice(0, 7) : 'unknown'
@@ -53,7 +74,11 @@ export default async function ReceiptsPage({
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-2xl font-bold text-brand-800">All Receipts</h1>
         <div className="flex items-center gap-2 flex-wrap">
-          <MonthFilter months={months} selected={month ?? ''} />
+          <ReceiptFilters
+            months={months}
+            selectedMonth={month ?? ''}
+            selectedSubmitter={submitter ?? ''}
+          />
           <a href="/api/export" className="btn-secondary">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -107,9 +132,12 @@ export default async function ReceiptsPage({
               {/* Mobile card list */}
               <div className="sm:hidden card p-0 overflow-hidden divide-y divide-stone-100">
                 {mReceipts.map((r) => (
-                  <Link key={r.id} href={`/receipts/${r.id}`} className="flex items-center justify-between px-4 py-3 hover:bg-brand-50 transition-colors">
-                    <div className="min-w-0 mr-3">
-                      <p className="font-medium text-sm truncate">{r.vendor ?? '—'}</p>
+                  <div key={r.id} className="flex items-center gap-3 px-4 py-3">
+                    <Link href={`/receipts/${r.id}`}>
+                      <Thumbnail url={r.image_url} />
+                    </Link>
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/receipts/${r.id}`} className="font-medium text-sm truncate block hover:text-brand-700">{r.vendor ?? '—'}</Link>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="text-xs text-stone-400">{fmtDate(r.date)}</span>
                         <CategoryBadge category={r.category} />
@@ -118,9 +146,9 @@ export default async function ReceiptsPage({
                     </div>
                     <div className="text-right shrink-0">
                       <p className="font-semibold text-brand-700 text-sm">{fmt(r.total)}</p>
-                      <p className="text-xs text-stone-400">GST {fmt(r.gst)}</p>
+                      <DeleteReceiptButton id={r.id} />
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
 
@@ -130,14 +158,19 @@ export default async function ReceiptsPage({
                   <table className="w-full text-sm">
                     <thead className="bg-stone-50 border-b border-stone-200">
                       <tr>
-                        {['Date', 'Vendor', 'Submitted By', 'Category', 'GST', 'PST', 'Total', ''].map((h) => (
-                          <th key={h} className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-stone-400">{h}</th>
+                        {['', 'Date', 'Vendor', 'Submitted By', 'Category', 'GST', 'PST', 'Total', ''].map((h, i) => (
+                          <th key={i} className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-stone-400">{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-100">
                       {mReceipts.map((r) => (
                         <tr key={r.id} className="hover:bg-brand-50 transition-colors">
+                          <td className="pl-4 py-2">
+                            <Link href={`/receipts/${r.id}`}>
+                              <Thumbnail url={r.image_url} />
+                            </Link>
+                          </td>
                           <td className="px-4 py-3 text-stone-500 whitespace-nowrap">{fmtDate(r.date)}</td>
                           <td className="px-4 py-3 font-medium">{r.vendor ?? '—'}</td>
                           <td className="px-4 py-3 text-stone-500">{r.submitted_by ?? '—'}</td>
@@ -146,7 +179,10 @@ export default async function ReceiptsPage({
                           <td className="px-4 py-3">{fmt(r.pst)}</td>
                           <td className="px-4 py-3 font-semibold text-brand-700">{fmt(r.total)}</td>
                           <td className="px-4 py-3">
-                            <Link href={`/receipts/${r.id}`} className="text-brand-600 hover:text-brand-800 text-xs font-semibold">View</Link>
+                            <div className="flex items-center gap-3">
+                              <Link href={`/receipts/${r.id}`} className="text-brand-600 hover:text-brand-800 text-xs font-semibold">View</Link>
+                              <DeleteReceiptButton id={r.id} />
+                            </div>
                           </td>
                         </tr>
                       ))}
